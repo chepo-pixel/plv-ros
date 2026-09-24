@@ -19,9 +19,28 @@ const generateBtn = document.getElementById("generateBtn");
 const dataBody = document.getElementById("dataBody");
 const batchNote = document.getElementById("batchNote");
 
+const rosRowsInput = document.getElementById("rosRows");
+const rosMinInput = document.getElementById("rosMin");
+const rosMaxInput = document.getElementById("rosMax");
+const trayAInput = document.getElementById("trayA");
+const trayBInput = document.getElementById("trayB");
+const trayTareInput = document.getElementById("trayTare");
+
+const rosRowsError = document.getElementById("rosRowsError");
+const rosMinError = document.getElementById("rosMinError");
+const rosMaxError = document.getElementById("rosMaxError");
+const trayAError = document.getElementById("trayAError");
+const trayBError = document.getElementById("trayBError");
+const trayTareError = document.getElementById("trayTareError");
+
+const generateRosBtn = document.getElementById("generateRosBtn");
+const rosDataBody = document.getElementById("rosDataBody");
+const rosBatchNote = document.getElementById("rosBatchNote");
+
 const MIN_ALLOWED_M1 = 1500;
 const MAX_ROWS = 500;
-const CLUSTER_RADIUS = 5.0; // percentage points
+const PULV_CLUSTER_RADIUS = 5.0; // percentage points
+const ROS_CLUSTER_RADIUS = 0.2; // kg/m², giving about 0.4 kg/m² total spread
 
 function switchTab(tabName) {
   const showPulverisation = tabName === "pulverisation";
@@ -46,7 +65,11 @@ function randomNumber(min, max) {
 }
 
 function roundToOneDecimal(value) {
-  return Math.round(value * 10) / 10;
+  return Math.round((value + Number.EPSILON) * 10) / 10;
+}
+
+function roundToTwoDecimals(value) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 function calculatePulverisation(m1, m2, m3) {
@@ -105,13 +128,8 @@ function validateInputs() {
 }
 
 function generateOneRow(targetPulverisation, settings) {
-  // Rejection sampling is used because m1, m2 and m3 must all be whole grams.
-  // The displayed result is always recalculated from those final integer values.
   for (let attempt = 0; attempt < 2500; attempt++) {
     const m1 = randomInteger(settings.m1Min, settings.m1Max);
-
-    // Similar scale to typical PLV samples: m3 remains well below m1,
-    // while still leaving enough integer resolution to hit the target closely.
     const minDifference = Math.max(250, Math.round(m1 * 0.22));
     const maxDifference = Math.max(minDifference + 1, Math.round(m1 * 0.48));
     const denominator = randomInteger(minDifference, Math.min(maxDifference, m1 - 2));
@@ -138,11 +156,9 @@ function generateData() {
   const settings = validateInputs();
   if (!settings) return;
 
-  // Select one centre for the batch, then constrain every result to a local
-  // neighbourhood of +/- 5 percentage points without leaving the user range.
   const batchCentre = roundToOneDecimal(randomNumber(settings.pulvMin, settings.pulvMax));
-  const localMin = Math.max(settings.pulvMin, batchCentre - CLUSTER_RADIUS);
-  const localMax = Math.min(settings.pulvMax, batchCentre + CLUSTER_RADIUS);
+  const localMin = Math.max(settings.pulvMin, batchCentre - PULV_CLUSTER_RADIUS);
+  const localMax = Math.min(settings.pulvMax, batchCentre + PULV_CLUSTER_RADIUS);
 
   const rows = [];
 
@@ -173,9 +189,138 @@ function generateData() {
   batchNote.hidden = false;
 }
 
+function validateRosInputs() {
+  const rows = Number(rosRowsInput.value);
+  const rosMin = Number(rosMinInput.value);
+  const rosMax = Number(rosMaxInput.value);
+  const trayA = Number(trayAInput.value);
+  const trayB = Number(trayBInput.value);
+  const tare = Number(trayTareInput.value);
+
+  let valid = true;
+
+  if (!Number.isInteger(rows) || rows < 1 || rows > MAX_ROWS) {
+    rosRowsError.textContent = `Number of results must be an integer between 1 and ${MAX_ROWS}.`;
+    valid = false;
+  } else {
+    rosRowsError.textContent = "";
+  }
+
+  if (!Number.isFinite(rosMin) || rosMin <= 0) {
+    rosMinError.textContent = "Minimum Rate of Spread must be greater than 0 kg/m².";
+    valid = false;
+  } else {
+    rosMinError.textContent = "";
+  }
+
+  if (!Number.isFinite(rosMax) || rosMax <= 0) {
+    rosMaxError.textContent = "Maximum Rate of Spread must be greater than 0 kg/m².";
+    valid = false;
+  } else if (Number.isFinite(rosMin) && rosMax <= rosMin) {
+    rosMaxError.textContent = "Maximum Rate of Spread must be greater than the minimum.";
+    valid = false;
+  } else {
+    rosMaxError.textContent = "";
+  }
+
+  if (!Number.isFinite(trayA) || trayA <= 0) {
+    trayAError.textContent = "Tray side A must be greater than 0 cm.";
+    valid = false;
+  } else {
+    trayAError.textContent = "";
+  }
+
+  if (!Number.isFinite(trayB) || trayB <= 0) {
+    trayBError.textContent = "Tray side B must be greater than 0 cm.";
+    valid = false;
+  } else {
+    trayBError.textContent = "";
+  }
+
+  if (!Number.isFinite(tare) || tare < 0) {
+    trayTareError.textContent = "Empty tray weight must be 0 kg or greater.";
+    valid = false;
+  } else {
+    trayTareError.textContent = "";
+  }
+
+  if (!valid) return null;
+
+  const area = (trayA / 100) * (trayB / 100);
+  return { rows, rosMin, rosMax, trayA, trayB, tare: roundToTwoDecimals(tare), area };
+}
+
+function generateOneRosRow(targetRos, settings, localMin, localMax) {
+  // We calculate the binder mass from the desired RoS, round the weights to
+  // hundredths of a kilogram (as in the field report), and then recalculate
+  // the displayed RoS from those final weights so every row is internally consistent.
+  for (let attempt = 0; attempt < 1000; attempt++) {
+    const adjustedTarget = roundToOneDecimal(
+      Math.min(localMax, Math.max(localMin, targetRos + randomNumber(-0.05, 0.05)))
+    );
+
+    const net = roundToTwoDecimals(adjustedTarget * settings.area);
+    if (net <= 0) continue;
+
+    const gross = roundToTwoDecimals(settings.tare + net);
+    const consistentNet = roundToTwoDecimals(gross - settings.tare);
+    const actualRos = roundToOneDecimal(consistentNet / settings.area);
+
+    if (actualRos < settings.rosMin || actualRos > settings.rosMax) continue;
+    if (actualRos < localMin - 0.05 || actualRos > localMax + 0.05) continue;
+
+    return {
+      tare: settings.tare,
+      gross,
+      net: consistentNet,
+      ros: actualRos
+    };
+  }
+
+  throw new Error("Could not generate a valid Rate of Spread row with the selected settings.");
+}
+
+function generateRosData() {
+  const settings = validateRosInputs();
+  if (!settings) return;
+
+  const batchCentre = roundToOneDecimal(randomNumber(settings.rosMin, settings.rosMax));
+  const localMin = Math.max(settings.rosMin, batchCentre - ROS_CLUSTER_RADIUS);
+  const localMax = Math.min(settings.rosMax, batchCentre + ROS_CLUSTER_RADIUS);
+
+  const rows = [];
+
+  try {
+    for (let i = 0; i < settings.rows; i++) {
+      const target = roundToOneDecimal(randomNumber(localMin, localMax));
+      rows.push(generateOneRosRow(target, settings, localMin, localMax));
+    }
+  } catch (error) {
+    rosDataBody.innerHTML = `<tr><td colspan="4" class="empty">${error.message}</td></tr>`;
+    rosBatchNote.hidden = true;
+    return;
+  }
+
+  rosDataBody.innerHTML = "";
+  rows.forEach(row => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${row.tare.toFixed(2)}</td>
+      <td>${row.gross.toFixed(2)}</td>
+      <td>${row.net.toFixed(2)}</td>
+      <td>${row.ros.toFixed(1)}</td>
+    `;
+    rosDataBody.appendChild(tr);
+  });
+
+  rosBatchNote.textContent = `Tray area: ${settings.area.toFixed(4)} m². Generated around a batch centre of ${batchCentre.toFixed(1)} kg/m², within the selected ${settings.rosMin.toFixed(1)}–${settings.rosMax.toFixed(1)} kg/m² limits.`;
+  rosBatchNote.hidden = false;
+}
+
 pulverisationTab.addEventListener("click", () => switchTab("pulverisation"));
 rosTab.addEventListener("click", () => switchTab("ros"));
 generateBtn.addEventListener("click", generateData);
+generateRosBtn.addEventListener("click", generateRosData);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

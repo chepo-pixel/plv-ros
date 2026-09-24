@@ -77,9 +77,62 @@
       </section>
 
       <section id="rosPanel" class="tab-panel" role="tabpanel" aria-labelledby="rosTab" hidden>
-        <div class="coming-soon">
-          <h2>Rate of Spread (RoS)</h2>
-          <p>This generator will be added in the next version.</p>
+        <div class="form-group">
+          <label for="rosRows">Number of results</label>
+          <input id="rosRows" type="number" inputmode="numeric" min="1" max="500" step="1" value="2">
+          <div id="rosRowsError" class="error"></div>
+        </div>
+
+        <div class="two-column-grid">
+          <div class="form-group">
+            <label for="rosMin">Minimum Rate of Spread [kg/m²]</label>
+            <input id="rosMin" type="number" inputmode="decimal" step="0.1" value="12.0">
+            <div id="rosMinError" class="error"></div>
+          </div>
+          <div class="form-group">
+            <label for="rosMax">Maximum Rate of Spread [kg/m²]</label>
+            <input id="rosMax" type="number" inputmode="decimal" step="0.1" value="14.1">
+            <div id="rosMaxError" class="error"></div>
+          </div>
+        </div>
+
+        <div class="two-column-grid">
+          <div class="form-group">
+            <label for="trayA">Tray side A [cm]</label>
+            <input id="trayA" type="number" inputmode="decimal" min="0.1" step="0.1" value="50">
+            <div id="trayAError" class="error"></div>
+          </div>
+          <div class="form-group">
+            <label for="trayB">Tray side B [cm]</label>
+            <input id="trayB" type="number" inputmode="decimal" min="0.1" step="0.1" value="50">
+            <div id="trayBError" class="error"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="trayTare">Empty tray weight (Tare) [kg]</label>
+          <input id="trayTare" type="number" inputmode="decimal" min="0" step="0.01" value="5.50">
+          <div id="trayTareError" class="error"></div>
+        </div>
+
+        <button id="generateRosBtn" class="primary-button" type="button">Generate data</button>
+
+        <div id="rosBatchNote" class="batch-note" hidden></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tray Weight (Tare) [kg]</th>
+                <th>Tray Weight with Binder (Gross) [kg]</th>
+                <th>Binder Net Weight [kg]</th>
+                <th>Rate of Spread [kg/m²]</th>
+              </tr>
+            </thead>
+            <tbody id="rosDataBody">
+              <tr><td colspan="4" class="empty">No data generated</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
     </section>
