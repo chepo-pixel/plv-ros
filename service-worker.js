@@ -1,4 +1,4 @@
-const CACHE_NAME = "stabilisation-data-generator-v1";
+const CACHE_NAME = "plv-ros-v1-1";
 
 const FILES_TO_CACHE = [
   "./",
