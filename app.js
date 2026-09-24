@@ -18,6 +18,7 @@ const m1MaxError = document.getElementById("m1MaxError");
 const generateBtn = document.getElementById("generateBtn");
 const dataBody = document.getElementById("dataBody");
 const batchNote = document.getElementById("batchNote");
+const copyPulvBtn = document.getElementById("copyPulvBtn");
 
 const rosRowsInput = document.getElementById("rosRows");
 const rosMinInput = document.getElementById("rosMin");
@@ -36,11 +37,15 @@ const trayTareError = document.getElementById("trayTareError");
 const generateRosBtn = document.getElementById("generateRosBtn");
 const rosDataBody = document.getElementById("rosDataBody");
 const rosBatchNote = document.getElementById("rosBatchNote");
+const copyRosBtn = document.getElementById("copyRosBtn");
 
 const MIN_ALLOWED_M1 = 1500;
 const MAX_ROWS = 500;
 const PULV_CLUSTER_RADIUS = 5.0; // percentage points
 const ROS_CLUSTER_RADIUS = 0.2; // kg/m², giving about 0.4 kg/m² total spread
+
+let lastPulvRows = [];
+let lastRosRows = [];
 
 function switchTab(tabName) {
   const showPulverisation = tabName === "pulverisation";
@@ -174,6 +179,9 @@ function generateData() {
   }
 
   dataBody.innerHTML = "";
+  lastPulvRows = rows;
+  copyPulvBtn.disabled = false;
+  copyPulvBtn.textContent = "Copy data";
   rows.forEach(row => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -302,6 +310,9 @@ function generateRosData() {
   }
 
   rosDataBody.innerHTML = "";
+  lastRosRows = rows;
+  copyRosBtn.disabled = false;
+  copyRosBtn.textContent = "Copy data";
   rows.forEach(row => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -317,10 +328,48 @@ function generateRosData() {
   rosBatchNote.hidden = false;
 }
 
+
+async function copyRowsToClipboard(rows, formatter, button) {
+  if (!rows.length) return;
+  const text = rows.map(formatter).join("\n");
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (error) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+  }
+
+  const original = button.textContent;
+  button.textContent = "Copied";
+  button.classList.add("copied");
+  setTimeout(() => {
+    button.textContent = original;
+    button.classList.remove("copied");
+  }, 1200);
+}
+
 pulverisationTab.addEventListener("click", () => switchTab("pulverisation"));
 rosTab.addEventListener("click", () => switchTab("ros"));
 generateBtn.addEventListener("click", generateData);
 generateRosBtn.addEventListener("click", generateRosData);
+copyPulvBtn.addEventListener("click", () => copyRowsToClipboard(
+  lastPulvRows,
+  row => `${row.m1}\t${row.m2}\t${row.m3}\t${row.pulverisation.toFixed(1)}`,
+  copyPulvBtn
+));
+copyRosBtn.addEventListener("click", () => copyRowsToClipboard(
+  lastRosRows,
+  row => `${row.tare.toFixed(2)}\t${row.gross.toFixed(2)}\t${row.net.toFixed(2)}\t${row.ros.toFixed(1)}`,
+  copyRosBtn
+));
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
