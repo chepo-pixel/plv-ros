@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stabilisation Artificial Data Generator</title>
+  <meta name="theme-color" content="#111827">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <section class="card">
+      <h1>Stabilisation Artificial Data Generator</h1>
+      <p class="subtitle">Artificial field testing data generator</p>
+
+      <div class="tabs" role="tablist" aria-label="Data generators">
+        <button class="tab-button active" id="pulverisationTab" type="button" role="tab" aria-selected="true" aria-controls="pulverisationPanel">Pulverisation</button>
+        <button class="tab-button" id="rosTab" type="button" role="tab" aria-selected="false" aria-controls="rosPanel">Rate of Spread (RoS)</button>
+      </div>
+
+      <section id="pulverisationPanel" class="tab-panel active" role="tabpanel" aria-labelledby="pulverisationTab">
+        <div class="form-group">
+          <label for="rows">Number of results</label>
+          <input id="rows" type="number" inputmode="numeric" min="1" max="500" step="1" value="5">
+          <div id="rowsError" class="error"></div>
+        </div>
+
+        <div class="two-column-grid">
+          <div class="form-group">
+            <label for="pulvMin">Minimum pulverisation [%]</label>
+            <input id="pulvMin" type="number" inputmode="decimal" min="1" max="99.9" step="0.1" value="66">
+            <div id="pulvMinError" class="error"></div>
+          </div>
+          <div class="form-group">
+            <label for="pulvMax">Maximum pulverisation [%]</label>
+            <input id="pulvMax" type="number" inputmode="decimal" min="1.1" max="99.9" step="0.1" value="82">
+            <div id="pulvMaxError" class="error"></div>
+          </div>
+        </div>
+
+        <details class="advanced">
+          <summary>Advanced options</summary>
+          <div class="advanced-grid">
+            <div class="form-group">
+              <label for="m1Min">Minimum m1 [g]</label>
+              <input id="m1Min" type="number" inputmode="numeric" min="1500" step="1" value="1500">
+              <div id="m1MinError" class="error"></div>
+            </div>
+            <div class="form-group">
+              <label for="m1Max">Maximum m1 [g]</label>
+              <input id="m1Max" type="number" inputmode="numeric" min="1501" step="1" value="2000">
+              <div id="m1MaxError" class="error"></div>
+            </div>
+          </div>
+          <p class="helper-text">Generated rows always satisfy m1 &gt; m2 &gt; m3. Results in the same batch are intentionally clustered around one randomly selected pulverisation level.</p>
+        </details>
+
+        <button id="generateBtn" class="primary-button" type="button">Generate data</button>
+
+        <div id="batchNote" class="batch-note" hidden></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>m1 [g]</th>
+                <th>m2 [g]</th>
+                <th>m3 [g]</th>
+                <th>Degree of Pulverisation [%]</th>
+              </tr>
+            </thead>
+            <tbody id="dataBody">
+              <tr><td colspan="4" class="empty">No data generated</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="rosPanel" class="tab-panel" role="tabpanel" aria-labelledby="rosTab" hidden>
+        <div class="coming-soon">
+          <h2>Rate of Spread (RoS)</h2>
+          <p>This generator will be added in the next version.</p>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
