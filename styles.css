@@ -50,3 +50,12 @@ td { white-space: nowrap; }
   #rosPanel table { font-size: 0.74rem; }
   #rosPanel th, #rosPanel td { padding: 7px 2px; }
 }
+
+/* Grouped seven-column Pulverisation results; keep the RoS layout unchanged. */
+#pulverisationPanel .table-wrap { overflow-x: auto; }
+#pulverisationPanel table { min-width: 600px; font-size: 0.78rem; }
+#pulverisationPanel th, #pulverisationPanel td { padding: 9px 4px; }
+#pulverisationPanel .group-headings th { background: #e9edf3; border-bottom: 2px solid #cbd5e1; font-size: 0.85rem; }
+@media (max-width: 430px) {
+  #pulverisationPanel table { font-size: 0.74rem; }
+}

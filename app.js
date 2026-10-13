@@ -42,6 +42,7 @@ const copyRosBtn = document.getElementById("copyRosBtn");
 const MIN_ALLOWED_M1 = 1500;
 const MAX_ROWS = 500;
 const PULV_CLUSTER_RADIUS = 5.0; // percentage points
+const PASSING_CLUSTER_RADIUS = 2; // percentage points for 28 mm check
 const ROS_CLUSTER_RADIUS = 0.2; // kg/m², giving about 0.4 kg/m² total spread
 
 let lastPulvRows = [];
@@ -157,6 +158,20 @@ function generateOneRow(targetPulverisation, settings) {
   throw new Error("Could not generate a valid pulverisation row with the selected settings.");
 }
 
+// Select a central 28 mm passing value, favouring the 90-95% band.
+// About 90% of batches centre on 90-95%; the tails remain possible.
+function passingBatchCentre() {
+  if (Math.random() < 0.90) return randomInteger(90, 95);
+  return Math.random() < 0.5 ? randomInteger(85, 89) : randomInteger(96, 99);
+}
+
+function generate28mmRow(centre) {
+  const initialMass = randomInteger(2900, 3200);
+  const passing = randomInteger(Math.max(85, centre - PASSING_CLUSTER_RADIUS), Math.min(99, centre + PASSING_CLUSTER_RADIUS));
+  const retained = initialMass * (100 - passing) / 100;
+  return { initialMass, retained, passing };
+}
+
 function generateData() {
   const settings = validateInputs();
   if (!settings) return;
@@ -166,14 +181,15 @@ function generateData() {
   const localMax = Math.min(settings.pulvMax, batchCentre + PULV_CLUSTER_RADIUS);
 
   const rows = [];
+  const passingCentre = passingBatchCentre();
 
   try {
     for (let i = 0; i < settings.rows; i++) {
       const target = roundToOneDecimal(randomNumber(localMin, localMax));
-      rows.push(generateOneRow(target, settings));
+      rows.push({ ...generate28mmRow(passingCentre), ...generateOneRow(target, settings) });
     }
   } catch (error) {
-    dataBody.innerHTML = `<tr><td colspan="4" class="empty">${error.message}</td></tr>`;
+    dataBody.innerHTML = `<tr><td colspan="7" class="empty">${error.message}</td></tr>`;
     batchNote.hidden = true;
     return;
   }
@@ -185,6 +201,9 @@ function generateData() {
   rows.forEach(row => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
+      <td>${row.initialMass}</td>
+      <td>${row.retained.toFixed(2).replace(/\.?0+$/, "")}</td>
+      <td>${row.passing}</td>
       <td>${row.m1}</td>
       <td>${row.m2}</td>
       <td>${row.m3}</td>
@@ -362,7 +381,7 @@ generateBtn.addEventListener("click", generateData);
 generateRosBtn.addEventListener("click", generateRosData);
 copyPulvBtn.addEventListener("click", () => copyRowsToClipboard(
   lastPulvRows,
-  row => `${row.m1}\t${row.m2}\t${row.m3}\t${row.pulverisation.toFixed(1)}`,
+  row => `${row.initialMass}\t${row.retained.toFixed(2).replace(/\.?0+$/, "")}\t${row.passing}\t${row.m1}\t${row.m2}\t${row.m3}\t${row.pulverisation.toFixed(1)}`,
   copyPulvBtn
 ));
 copyRosBtn.addEventListener("click", () => copyRowsToClipboard(
