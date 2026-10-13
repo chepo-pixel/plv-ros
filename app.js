@@ -167,8 +167,9 @@ function passingBatchCentre() {
 
 function generate28mmRow(centre) {
   const initialMass = randomInteger(2900, 3200);
-  const passing = randomInteger(Math.max(85, centre - PASSING_CLUSTER_RADIUS), Math.min(99, centre + PASSING_CLUSTER_RADIUS));
-  const retained = initialMass * (100 - passing) / 100;
+  const targetPassing = randomInteger(Math.max(85, centre - PASSING_CLUSTER_RADIUS), Math.min(99, centre + PASSING_CLUSTER_RADIUS));
+  const retained = Math.round(initialMass * (100 - targetPassing) / 100);
+  const passing = 100 * (initialMass - retained) / initialMass;
   return { initialMass, retained, passing };
 }
 
@@ -202,8 +203,8 @@ function generateData() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${row.initialMass}</td>
-      <td>${row.retained.toFixed(2).replace(/\.?0+$/, "")}</td>
-      <td>${row.passing}</td>
+      <td>${row.retained.toFixed(0)}</td>
+      <td>${row.passing.toFixed(1)}</td>
       <td>${row.m1}</td>
       <td>${row.m2}</td>
       <td>${row.m3}</td>
@@ -381,7 +382,7 @@ generateBtn.addEventListener("click", generateData);
 generateRosBtn.addEventListener("click", generateRosData);
 copyPulvBtn.addEventListener("click", () => copyRowsToClipboard(
   lastPulvRows,
-  row => `${row.initialMass}\t${row.retained.toFixed(2).replace(/\.?0+$/, "")}\t${row.passing}\t${row.m1}\t${row.m2}\t${row.m3}\t${row.pulverisation.toFixed(1)}`,
+  row => `${row.initialMass}\t${row.retained.toFixed(0)}\t${row.passing.toFixed(1)}\t${row.m1}\t${row.m2}\t${row.m3}\t${row.pulverisation.toFixed(1)}`,
   copyPulvBtn
 ));
 copyRosBtn.addEventListener("click", () => copyRowsToClipboard(

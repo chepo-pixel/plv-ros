@@ -1,4 +1,4 @@
-const CACHE_NAME = "plv-ros-v1.4";
+const CACHE_NAME = "plv-ros-v1.5";
 const ASSETS = [
   "./",
   "./index.html",
