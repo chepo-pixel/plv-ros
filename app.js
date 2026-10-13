@@ -158,17 +158,24 @@ function generateOneRow(targetPulverisation, settings) {
   throw new Error("Could not generate a valid pulverisation row with the selected settings.");
 }
 
-// Select a central 28 mm passing value, favouring the 90-95% band.
-// About 90% of batches centre on 90-95%; the tails remain possible.
+// Choose a shared batch centre. Most batches fall within 90-95%.
+// Very high passing (around 99.9%) occurs in approximately 1% of batches.
 function passingBatchCentre() {
-  if (Math.random() < 0.90) return randomInteger(90, 95);
-  return Math.random() < 0.5 ? randomInteger(85, 89) : randomInteger(96, 99);
+  const chance = Math.random();
+  if (chance < 0.90) return roundToOneDecimal(randomNumber(90, 95));
+  if (chance < 0.94) return roundToOneDecimal(randomNumber(85, 89));
+  if (chance < 0.99) return roundToOneDecimal(randomNumber(96, 98));
+  return 99.9;
 }
 
 function generate28mmRow(centre) {
   const initialMass = randomInteger(2900, 3200);
-  const targetPassing = randomInteger(Math.max(85, centre - PASSING_CLUSTER_RADIUS), Math.min(99, centre + PASSING_CLUSTER_RADIUS));
-  const retained = Math.round(initialMass * (100 - targetPassing) / 100);
+  const lower = Math.max(85, centre - PASSING_CLUSTER_RADIUS);
+  const upper = Math.min(99.9, centre + PASSING_CLUSTER_RADIUS);
+  // Generate a decimal target, then derive the integer retained weight.
+  // The displayed percentage is always recalculated from the actual weights.
+  const targetPassing = centre === 99.9 ? 99.9 : roundToOneDecimal(randomNumber(lower, upper));
+  const retained = Math.max(1, Math.round(initialMass * (100 - targetPassing) / 100));
   const passing = 100 * (initialMass - retained) / initialMass;
   return { initialMass, retained, passing };
 }
